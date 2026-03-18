@@ -892,6 +892,8 @@ a {
     width: 100%;
     justify-content: center;
     gap: 0.8rem;
+    position: relative;
+    padding-left: 92px;
   }
 
   .nav-toggle {
@@ -901,9 +903,23 @@ a {
   }
 
   .mobile-socials {
-    display: inline-flex;
+    display: grid;
     position: absolute;
     left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem 0.5rem;
+  }
+
+  .mobile-socials .icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .mobile-socials .icon svg {
+    width: 16px;
+    height: 16px;
   }
 
   .top-bar__right .desktop-only {
