@@ -915,6 +915,7 @@
             <button class="btn ghost" type="button" data-pdf-zoom-in>+</button>
           </div>
         </div>
+        <p class="pdf-status" data-pdf-status>Loading...</p>
         <div class="pdf-frame">
           <canvas id="quranPdfCanvas" aria-label="Read Quran PDF"></canvas>
         </div>
@@ -988,18 +989,15 @@
         });
       });
     </script>
-    <script type="module">
-      import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs";
-
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs";
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
       const pdfUrl = "pdfs/Read%20quran.pdf";
       const pdfModal = document.getElementById("quranPdfModal");
       const pdfOpen = document.querySelector("[data-pdf-open]");
       const pdfFrame = document.querySelector(".pdf-frame");
       const canvas = document.getElementById("quranPdfCanvas");
       const pageIndicator = document.querySelector("[data-pdf-page]");
+      const statusText = document.querySelector("[data-pdf-status]");
       const prevBtn = document.querySelector("[data-pdf-prev]");
       const nextBtn = document.querySelector("[data-pdf-next]");
       const zoomInBtn = document.querySelector("[data-pdf-zoom-in]");
@@ -1034,9 +1032,11 @@
       const renderPage = async (num) => {
         if (!pdfDoc) return;
         rendering = true;
+        statusText.textContent = "Loading page...";
         const page = await pdfDoc.getPage(num);
         const unscaled = page.getViewport({ scale: 1 });
-        const baseScale = pdfFrame.clientWidth / unscaled.width;
+        const frameWidth = Math.max(pdfFrame.clientWidth, 320);
+        const baseScale = frameWidth / unscaled.width;
         const viewport = page.getViewport({ scale: baseScale * zoom });
         const outputScale = window.devicePixelRatio || 1;
 
@@ -1058,11 +1058,13 @@
           await renderTask.promise;
         } catch (error) {
           if (error?.name !== "RenderingCancelledException") {
+            statusText.textContent = "Unable to render this PDF.";
             console.error(error);
           }
         }
 
         rendering = false;
+        statusText.textContent = "";
         updateButtons();
 
         if (pendingPage !== null) {
@@ -1081,8 +1083,17 @@
       };
 
       const loadPdf = async () => {
+        if (!window.pdfjsLib) {
+          statusText.textContent = "PDF viewer failed to load.";
+          return;
+        }
+
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
         if (!pdfDoc) {
-          pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+          statusText.textContent = "Loading PDF...";
+          pdfDoc = await window.pdfjsLib.getDocument(pdfUrl).promise;
         }
       };
 
@@ -1093,7 +1104,7 @@
           await loadPdf();
           pageNum = 1;
           zoom = 1;
-          queueRenderPage(pageNum);
+          requestAnimationFrame(() => queueRenderPage(pageNum));
         });
       }
 

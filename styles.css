@@ -961,6 +961,12 @@ a {
   margin-left: auto;
 }
 
+.pdf-status {
+  font-size: 0.85rem;
+  color: rgba(10, 27, 46, 0.7);
+  margin: 0;
+}
+
 .modal-close {
   position: absolute;
   top: 12px;
