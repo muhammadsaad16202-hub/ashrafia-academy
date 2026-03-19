@@ -906,8 +906,17 @@
         <button class="modal-close" type="button" data-pdf-close aria-label="Close">×</button>
         <p class="eyebrow">Quran</p>
         <h2 id="quranPdfTitle">Read Quran</h2>
+        <div class="pdf-toolbar">
+          <button class="btn ghost" type="button" data-pdf-prev>Prev</button>
+          <span class="pdf-page" data-pdf-page>1 / 1</span>
+          <button class="btn ghost" type="button" data-pdf-next>Next</button>
+          <div class="pdf-zoom">
+            <button class="btn ghost" type="button" data-pdf-zoom-out>-</button>
+            <button class="btn ghost" type="button" data-pdf-zoom-in>+</button>
+          </div>
+        </div>
         <div class="pdf-frame">
-          <iframe src="pdfs/Read%20quran.pdf#view=FitH" title="Read Quran PDF"></iframe>
+          <canvas id="quranPdfCanvas" aria-label="Read Quran PDF"></canvas>
         </div>
         <a class="btn ghost" href="pdfs/Read%20quran.pdf" target="_blank" rel="noopener">Open in new tab</a>
       </div>
@@ -920,8 +929,6 @@
       const WHATSAPP_NUMBER = "923447627464";
       const navToggle = document.querySelector(".nav-toggle");
       const primaryNav = document.getElementById("primaryNav");
-      const pdfModal = document.getElementById("quranPdfModal");
-      const pdfOpen = document.querySelector("[data-pdf-open]");
 
       const buildWhatsAppUrl = (form) => {
         const data = new FormData(form);
@@ -947,17 +954,6 @@
         trialModal.setAttribute("aria-hidden", "true");
       };
 
-      const openPdfModal = () => {
-        if (!pdfModal) return;
-        pdfModal.classList.add("show");
-        pdfModal.setAttribute("aria-hidden", "false");
-      };
-
-      const closePdfModal = () => {
-        if (!pdfModal) return;
-        pdfModal.classList.remove("show");
-        pdfModal.setAttribute("aria-hidden", "true");
-      };
 
       setTimeout(() => {
         openModal();
@@ -969,13 +965,6 @@
         }
       });
 
-      if (pdfModal) {
-        pdfModal.addEventListener("click", (event) => {
-          if (event.target.matches("[data-pdf-close]")) {
-            closePdfModal();
-          }
-        });
-      }
 
       modalForm.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -991,19 +980,156 @@
         });
       }
 
-      if (pdfOpen) {
-        pdfOpen.addEventListener("click", (event) => {
-          event.preventDefault();
-          openPdfModal();
-        });
-      }
-
       whatsappButtons.forEach((button) => {
         button.addEventListener("click", (event) => {
           event.preventDefault();
           const url = buildWhatsAppUrl(button.closest("form"));
           window.open(url, "_blank", "noopener,noreferrer");
         });
+      });
+    </script>
+    <script type="module">
+      import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs";
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs";
+
+      const pdfUrl = "pdfs/Read%20quran.pdf";
+      const pdfModal = document.getElementById("quranPdfModal");
+      const pdfOpen = document.querySelector("[data-pdf-open]");
+      const pdfFrame = document.querySelector(".pdf-frame");
+      const canvas = document.getElementById("quranPdfCanvas");
+      const pageIndicator = document.querySelector("[data-pdf-page]");
+      const prevBtn = document.querySelector("[data-pdf-prev]");
+      const nextBtn = document.querySelector("[data-pdf-next]");
+      const zoomInBtn = document.querySelector("[data-pdf-zoom-in]");
+      const zoomOutBtn = document.querySelector("[data-pdf-zoom-out]");
+
+      let pdfDoc = null;
+      let pageNum = 1;
+      let zoom = 1;
+      let renderTask = null;
+      let rendering = false;
+      let pendingPage = null;
+
+      const openPdfModal = () => {
+        if (!pdfModal) return;
+        pdfModal.classList.add("show");
+        pdfModal.setAttribute("aria-hidden", "false");
+      };
+
+      const closePdfModal = () => {
+        if (!pdfModal) return;
+        pdfModal.classList.remove("show");
+        pdfModal.setAttribute("aria-hidden", "true");
+      };
+
+      const updateButtons = () => {
+        if (!pdfDoc) return;
+        pageIndicator.textContent = `${pageNum} / ${pdfDoc.numPages}`;
+        prevBtn.disabled = pageNum <= 1;
+        nextBtn.disabled = pageNum >= pdfDoc.numPages;
+      };
+
+      const renderPage = async (num) => {
+        if (!pdfDoc) return;
+        rendering = true;
+        const page = await pdfDoc.getPage(num);
+        const unscaled = page.getViewport({ scale: 1 });
+        const baseScale = pdfFrame.clientWidth / unscaled.width;
+        const viewport = page.getViewport({ scale: baseScale * zoom });
+        const outputScale = window.devicePixelRatio || 1;
+
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
+
+        const context = canvas.getContext("2d");
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+
+        if (renderTask?.cancel) {
+          renderTask.cancel();
+        }
+
+        renderTask = page.render({ canvasContext: context, viewport, transform });
+
+        try {
+          await renderTask.promise;
+        } catch (error) {
+          if (error?.name !== "RenderingCancelledException") {
+            console.error(error);
+          }
+        }
+
+        rendering = false;
+        updateButtons();
+
+        if (pendingPage !== null) {
+          const next = pendingPage;
+          pendingPage = null;
+          renderPage(next);
+        }
+      };
+
+      const queueRenderPage = (num) => {
+        if (rendering) {
+          pendingPage = num;
+          return;
+        }
+        renderPage(num);
+      };
+
+      const loadPdf = async () => {
+        if (!pdfDoc) {
+          pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+        }
+      };
+
+      if (pdfOpen) {
+        pdfOpen.addEventListener("click", async (event) => {
+          event.preventDefault();
+          openPdfModal();
+          await loadPdf();
+          pageNum = 1;
+          zoom = 1;
+          queueRenderPage(pageNum);
+        });
+      }
+
+      if (pdfModal) {
+        pdfModal.addEventListener("click", (event) => {
+          if (event.target.matches("[data-pdf-close]")) {
+            closePdfModal();
+          }
+        });
+      }
+
+      prevBtn.addEventListener("click", () => {
+        if (!pdfDoc || pageNum <= 1) return;
+        pageNum -= 1;
+        queueRenderPage(pageNum);
+      });
+
+      nextBtn.addEventListener("click", () => {
+        if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+        pageNum += 1;
+        queueRenderPage(pageNum);
+      });
+
+      zoomInBtn.addEventListener("click", () => {
+        zoom = Math.min(2, zoom + 0.15);
+        queueRenderPage(pageNum);
+      });
+
+      zoomOutBtn.addEventListener("click", () => {
+        zoom = Math.max(0.7, zoom - 0.15);
+        queueRenderPage(pageNum);
+      });
+
+      window.addEventListener("resize", () => {
+        if (!pdfDoc || pdfModal?.getAttribute("aria-hidden") === "true") return;
+        queueRenderPage(pageNum);
       });
     </script>
   </body>
