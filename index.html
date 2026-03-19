@@ -303,7 +303,7 @@
         </div>
         <div class="reading-actions">
           <a class="btn primary" href="https://quranmubarak.com/wp-content/uploads/2021/07/Basic-Qaida-Urdu.pdf" target="_blank" rel="noopener">Read Noorani Qaida</a>
-          <a class="btn ghost" href="pdfs/Read quran.pdf" target="_blank" rel="noopener">Read Quran</a>
+          <a class="btn ghost" href="pdfs/Read%20quran.pdf" data-pdf-open>Read Quran</a>
           <a class="btn ghost" href="https://downloadthequran.com/wp-content/uploads/2022/01/13-Line-Quran-with-Tajweed-rule.pdf" target="_blank" rel="noopener">Read Tajweed Quran</a>
           <a class="btn ghost" href="https://www.aicp.org/SupportingDocs/The_Forty_Nawawi_Hadith.pdf" target="_blank" rel="noopener">Ahadess and Dua</a>
         </div>
@@ -656,12 +656,9 @@
                 loading="lazy"
               />
             </span>
-            <span class="pay-icon" aria-label="NayaPay">
-              <img
-                src="https://www.nayapay.com/images/rebrand/NayaPay-Logo.svg"
-                alt="NayaPay"
-                loading="lazy"
-              />
+            <span class="pay-icon pay-icon--nayapay" aria-label="NayaPay">
+              <img src="images/nayapay-icon.svg" alt="NayaPay" loading="lazy" />
+              <span class="pay-icon__label">NayaPay</span>
             </span>
             <span class="pay-icon" aria-label="SadaPay">
               <img
@@ -903,6 +900,19 @@
       </div>
     </div>
 
+    <div class="pdf-modal" id="quranPdfModal" aria-hidden="true">
+      <div class="pdf-modal__backdrop" data-pdf-close></div>
+      <div class="pdf-modal__card" role="dialog" aria-modal="true" aria-labelledby="quranPdfTitle">
+        <button class="modal-close" type="button" data-pdf-close aria-label="Close">×</button>
+        <p class="eyebrow">Quran</p>
+        <h2 id="quranPdfTitle">Read Quran</h2>
+        <div class="pdf-frame">
+          <iframe src="pdfs/Read%20quran.pdf#view=FitH" title="Read Quran PDF"></iframe>
+        </div>
+        <a class="btn ghost" href="pdfs/Read%20quran.pdf" target="_blank" rel="noopener">Open in new tab</a>
+      </div>
+    </div>
+
     <script>
       const trialModal = document.getElementById("trialModal");
       const modalForm = document.getElementById("trialModalForm");
@@ -910,6 +920,8 @@
       const WHATSAPP_NUMBER = "923447627464";
       const navToggle = document.querySelector(".nav-toggle");
       const primaryNav = document.getElementById("primaryNav");
+      const pdfModal = document.getElementById("quranPdfModal");
+      const pdfOpen = document.querySelector("[data-pdf-open]");
 
       const buildWhatsAppUrl = (form) => {
         const data = new FormData(form);
@@ -935,6 +947,18 @@
         trialModal.setAttribute("aria-hidden", "true");
       };
 
+      const openPdfModal = () => {
+        if (!pdfModal) return;
+        pdfModal.classList.add("show");
+        pdfModal.setAttribute("aria-hidden", "false");
+      };
+
+      const closePdfModal = () => {
+        if (!pdfModal) return;
+        pdfModal.classList.remove("show");
+        pdfModal.setAttribute("aria-hidden", "true");
+      };
+
       setTimeout(() => {
         openModal();
       }, 15000);
@@ -944,6 +968,14 @@
           closeModal();
         }
       });
+
+      if (pdfModal) {
+        pdfModal.addEventListener("click", (event) => {
+          if (event.target.matches("[data-pdf-close]")) {
+            closePdfModal();
+          }
+        });
+      }
 
       modalForm.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -956,6 +988,13 @@
         navToggle.addEventListener("click", () => {
           const isOpen = primaryNav.classList.toggle("open");
           navToggle.setAttribute("aria-expanded", String(isOpen));
+        });
+      }
+
+      if (pdfOpen) {
+        pdfOpen.addEventListener("click", (event) => {
+          event.preventDefault();
+          openPdfModal();
         });
       }
 
