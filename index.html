@@ -303,7 +303,13 @@
         </div>
         <div class="reading-actions">
           <a class="btn primary" href="https://quranmubarak.com/wp-content/uploads/2021/07/Basic-Qaida-Urdu.pdf" target="_blank" rel="noopener">Read Noorani Qaida</a>
-          <a class="btn ghost" href="pdfs/Read%20quran.pdf" data-pdf-open>Read Quran</a>
+          <a
+            class="btn ghost"
+            href="https://drive.google.com/file/d/1iFONsLhtc5hgfezs8AgbnrUeHNeNtjJy/view?usp=sharing"
+            data-pdf-open
+          >
+            Read Quran
+          </a>
           <a class="btn ghost" href="https://downloadthequran.com/wp-content/uploads/2022/01/13-Line-Quran-with-Tajweed-rule.pdf" target="_blank" rel="noopener">Read Tajweed Quran</a>
           <a class="btn ghost" href="https://www.aicp.org/SupportingDocs/The_Forty_Nawawi_Hadith.pdf" target="_blank" rel="noopener">Ahadess and Dua</a>
         </div>
@@ -906,20 +912,21 @@
         <button class="modal-close" type="button" data-pdf-close aria-label="Close">×</button>
         <p class="eyebrow">Quran</p>
         <h2 id="quranPdfTitle">Read Quran</h2>
-        <div class="pdf-toolbar">
-          <button class="btn ghost" type="button" data-pdf-prev>Prev</button>
-          <span class="pdf-page" data-pdf-page>1 / 1</span>
-          <button class="btn ghost" type="button" data-pdf-next>Next</button>
-          <div class="pdf-zoom">
-            <button class="btn ghost" type="button" data-pdf-zoom-out>-</button>
-            <button class="btn ghost" type="button" data-pdf-zoom-in>+</button>
-          </div>
-        </div>
-        <p class="pdf-status" data-pdf-status>Loading...</p>
         <div class="pdf-frame">
-          <canvas id="quranPdfCanvas" aria-label="Read Quran PDF"></canvas>
+          <iframe
+            src="https://drive.google.com/file/d/1iFONsLhtc5hgfezs8AgbnrUeHNeNtjJy/preview"
+            title="Read Quran PDF"
+            allow="autoplay"
+          ></iframe>
         </div>
-        <a class="btn ghost" href="pdfs/Read%20quran.pdf" target="_blank" rel="noopener">Open in new tab</a>
+        <a
+          class="btn ghost"
+          href="https://drive.google.com/file/d/1iFONsLhtc5hgfezs8AgbnrUeHNeNtjJy/view?usp=sharing"
+          target="_blank"
+          rel="noopener"
+        >
+          Open in new tab
+        </a>
       </div>
     </div>
 
@@ -989,26 +996,9 @@
         });
       });
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
-      const pdfUrl = "pdfs/Read%20quran.pdf";
       const pdfModal = document.getElementById("quranPdfModal");
       const pdfOpen = document.querySelector("[data-pdf-open]");
-      const pdfFrame = document.querySelector(".pdf-frame");
-      const canvas = document.getElementById("quranPdfCanvas");
-      const pageIndicator = document.querySelector("[data-pdf-page]");
-      const statusText = document.querySelector("[data-pdf-status]");
-      const prevBtn = document.querySelector("[data-pdf-prev]");
-      const nextBtn = document.querySelector("[data-pdf-next]");
-      const zoomInBtn = document.querySelector("[data-pdf-zoom-in]");
-      const zoomOutBtn = document.querySelector("[data-pdf-zoom-out]");
-
-      let pdfDoc = null;
-      let pageNum = 1;
-      let zoom = 1;
-      let renderTask = null;
-      let rendering = false;
-      let pendingPage = null;
 
       const openPdfModal = () => {
         if (!pdfModal) return;
@@ -1022,89 +1012,10 @@
         pdfModal.setAttribute("aria-hidden", "true");
       };
 
-      const updateButtons = () => {
-        if (!pdfDoc) return;
-        pageIndicator.textContent = `${pageNum} / ${pdfDoc.numPages}`;
-        prevBtn.disabled = pageNum <= 1;
-        nextBtn.disabled = pageNum >= pdfDoc.numPages;
-      };
-
-      const renderPage = async (num) => {
-        if (!pdfDoc) return;
-        rendering = true;
-        statusText.textContent = "Loading page...";
-        const page = await pdfDoc.getPage(num);
-        const unscaled = page.getViewport({ scale: 1 });
-        const frameWidth = Math.max(pdfFrame.clientWidth, 320);
-        const baseScale = frameWidth / unscaled.width;
-        const viewport = page.getViewport({ scale: baseScale * zoom });
-        const outputScale = window.devicePixelRatio || 1;
-
-        canvas.width = Math.floor(viewport.width * outputScale);
-        canvas.height = Math.floor(viewport.height * outputScale);
-        canvas.style.width = `${viewport.width}px`;
-        canvas.style.height = `${viewport.height}px`;
-
-        const context = canvas.getContext("2d");
-        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
-
-        if (renderTask?.cancel) {
-          renderTask.cancel();
-        }
-
-        renderTask = page.render({ canvasContext: context, viewport, transform });
-
-        try {
-          await renderTask.promise;
-        } catch (error) {
-          if (error?.name !== "RenderingCancelledException") {
-            statusText.textContent = "Unable to render this PDF.";
-            console.error(error);
-          }
-        }
-
-        rendering = false;
-        statusText.textContent = "";
-        updateButtons();
-
-        if (pendingPage !== null) {
-          const next = pendingPage;
-          pendingPage = null;
-          renderPage(next);
-        }
-      };
-
-      const queueRenderPage = (num) => {
-        if (rendering) {
-          pendingPage = num;
-          return;
-        }
-        renderPage(num);
-      };
-
-      const loadPdf = async () => {
-        if (!window.pdfjsLib) {
-          statusText.textContent = "PDF viewer failed to load.";
-          return;
-        }
-
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-
-        if (!pdfDoc) {
-          statusText.textContent = "Loading PDF...";
-          pdfDoc = await window.pdfjsLib.getDocument(pdfUrl).promise;
-        }
-      };
-
       if (pdfOpen) {
-        pdfOpen.addEventListener("click", async (event) => {
+        pdfOpen.addEventListener("click", (event) => {
           event.preventDefault();
           openPdfModal();
-          await loadPdf();
-          pageNum = 1;
-          zoom = 1;
-          requestAnimationFrame(() => queueRenderPage(pageNum));
         });
       }
 
@@ -1116,32 +1027,6 @@
         });
       }
 
-      prevBtn.addEventListener("click", () => {
-        if (!pdfDoc || pageNum <= 1) return;
-        pageNum -= 1;
-        queueRenderPage(pageNum);
-      });
-
-      nextBtn.addEventListener("click", () => {
-        if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
-        pageNum += 1;
-        queueRenderPage(pageNum);
-      });
-
-      zoomInBtn.addEventListener("click", () => {
-        zoom = Math.min(2, zoom + 0.15);
-        queueRenderPage(pageNum);
-      });
-
-      zoomOutBtn.addEventListener("click", () => {
-        zoom = Math.max(0.7, zoom - 0.15);
-        queueRenderPage(pageNum);
-      });
-
-      window.addEventListener("resize", () => {
-        if (!pdfDoc || pdfModal?.getAttribute("aria-hidden") === "true") return;
-        queueRenderPage(pageNum);
-      });
     </script>
   </body>
 </html>
